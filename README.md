@@ -262,8 +262,9 @@ mangile rollback
 ## Yol Haritası
 
 - **Faz 1** ✓ — İskelet, pagesorter, manga/novel yükleme, taslak/yayın, geri alma
-- **Faz 2** (devam ediyor) — Yerleşik web sunucusu ✓, bölüm düzenle/sil + asset temizliği ✓, cbr/7z desteği (sonraya bırakıldı)
-- **Faz 3** (devam ediyor) — `create/update --fetch` (Jikan) ✓, `doctor` ✓, `import` (CSV + migrasyon) ✓
+- **Faz 2** ✓ — Yerleşik web sunucusu, bölüm düzenle/sil + asset temizliği (cbr/7z sonraya bırakıldı)
+- **Faz 3** ✓ — `create/update --fetch` (Jikan), `doctor`, `import` (CSV + migrasyon)
+- **Faz 4** ✓ — Cilalama, uçtan uca testler, eski araç klasörlerinin kaldırılması (içerik `Documents/mangile` altına taşındı)
 - **Faz 4** — Cilalama, uçtan uca testler, eski araçların kaldırılması
 
 ## Lisans

@@ -33,8 +33,7 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	for {
 		var pick string
-		opts := optionsWithTitle(actions)
-		if err := tui.SelectOne("Yapılacak işlem", opts, &pick); err != nil {
+		if err := tui.SelectOne("Yapılacak işlem", actions, &pick); err != nil {
 			return err
 		}
 		switch pick {
@@ -99,8 +98,4 @@ func (a *App) Run(ctx context.Context) error {
 			}
 		}
 	}
-}
-
-func optionsWithTitle(items []string) []string {
-	return items
 }

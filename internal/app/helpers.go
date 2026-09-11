@@ -60,7 +60,7 @@ type scanDoc struct {
 	} `json:"titles"`
 }
 
-func (a *App) syncScanTitle(ctx context.Context, journal *uploads.Journal, scanID, seriesID string, created bool) error {
+func (a *App) syncScanTitle(ctx context.Context, journal *uploads.Journal, scanID, seriesID string) error {
 	if seriesID == "" {
 		return nil
 	}
@@ -92,7 +92,6 @@ func (a *App) syncScanTitle(ctx context.Context, journal *uploads.Journal, scanI
 	}); err != nil {
 		return err
 	}
-	_ = created
 	journal.PatchedDocs = append(journal.PatchedDocs, uploads.JournalPatch{ID: scanID, Rev: doc.Rev, Before: before})
 	return nil
 }

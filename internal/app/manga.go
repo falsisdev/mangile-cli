@@ -413,7 +413,7 @@ func (a *App) uploadMangaChapter(ctx context.Context, journal *uploads.Journal, 
 	journal.CreatedDocs = append(journal.CreatedDocs, draftID)
 
 	if series.Config.DefaultScanID != "" {
-		if err := a.syncScanTitle(ctx, journal, series.Config.DefaultScanID, sanityID, false); err != nil {
+		if err := a.syncScanTitle(ctx, journal, series.Config.DefaultScanID, sanityID); err != nil {
 			tui.PrintWarn("scan.titles senkronu başarısız: %v", err)
 		}
 	}
