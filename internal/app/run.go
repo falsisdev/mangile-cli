@@ -26,9 +26,11 @@ func (a *App) Run(ctx context.Context) error {
 		"Seri güncelle",
 		"Web yükleyici (tarayıcı)",
 		"Tutarlılık tara (doctor)",
+		"Sanity'den eşitle (sync)",
 		"İçe aktar (CSV / migrasyon)",
 		"Taslakları yayınla",
 		"Değişiklikleri geri al (rollback)",
+		"Sürümü yükselt (upgrade)",
 		"Çıkış",
 	}
 	for {
@@ -37,7 +39,7 @@ func (a *App) Run(ctx context.Context) error {
 			return err
 		}
 		switch pick {
-		case actions[12]:
+		case actions[14]:
 			tui.PrintInfo("Görüşürüz.")
 			return nil
 		case actions[0]:
@@ -85,15 +87,23 @@ func (a *App) Run(ctx context.Context) error {
 				tui.PrintError("%v", err)
 			}
 		case actions[9]:
-			if err := a.ImportMenu(ctx); err != nil {
+			if err := a.Sync(ctx); err != nil {
 				tui.PrintError("%v", err)
 			}
 		case actions[10]:
-			if err := a.PublishAll(ctx); err != nil {
+			if err := a.ImportMenu(ctx); err != nil {
 				tui.PrintError("%v", err)
 			}
 		case actions[11]:
-			if err := a.Rollback(ctx); err != nil {
+			if err := a.PublishAll(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[12]:
+			if err := a.Rollback(ctx, ""); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[13]:
+			if err := a.Upgrade(ctx); err != nil {
 				tui.PrintError("%v", err)
 			}
 		}

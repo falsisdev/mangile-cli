@@ -178,3 +178,111 @@ func PortableTextFromText(content string) []map[string]any {
 	flush()
 	return blocks
 }
+
+func TextFromPortableText(blocks []map[string]any) string {
+	var lines []string
+	for _, b := range blocks {
+		line, ok := blockToText(b)
+		if !ok {
+			continue
+		}
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n\n")
+}
+
+func blockToText(b map[string]any) (string, bool) {
+	if b["_type"] != "block" {
+		return "", false
+	}
+	style, _ := b["style"].(string)
+	text := spansToText(b)
+	switch {
+	case strings.HasPrefix(style, "h") && len(style) == 2 && style[1] >= '1' && style[1] <= '6':
+		level := int(style[1] - '0')
+		return strings.Repeat("#", level) + " " + text, true
+	case style == "blockquote":
+		return "> " + text, true
+	case style == "bullet":
+		return "- " + text, true
+	default:
+		return text, true
+	}
+}
+
+func childMaps(b map[string]any, key string) []map[string]any {
+	if raw, ok := b[key].([]any); ok {
+		var out []map[string]any
+		for _, c := range raw {
+			if m, ok := c.(map[string]any); ok {
+				out = append(out, m)
+			}
+		}
+		return out
+	}
+	if maps, ok := b[key].([]map[string]any); ok {
+		return maps
+	}
+	return nil
+}
+
+func spansToText(b map[string]any) string {
+	hrefs := map[string]string{}
+	for _, d := range childMaps(b, "markDefs") {
+		if d["_type"] != "link" {
+			continue
+		}
+		key, _ := d["_key"].(string)
+		href, _ := d["href"].(string)
+		if key != "" && href != "" {
+			hrefs[key] = href
+		}
+	}
+	var sb strings.Builder
+	children := childMaps(b, "children")
+	var inlineHrefs []string
+	for _, m := range children {
+		if m["_type"] == "link" {
+			if href, _ := m["href"].(string); href != "" {
+				inlineHrefs = append(inlineHrefs, href)
+			}
+		}
+	}
+	for _, span := range children {
+		if span["_type"] != "span" {
+			continue
+		}
+		text, _ := span["text"].(string)
+		for _, key := range spanMarks(span) {
+			href := hrefs[key]
+			if href == "" && (key == "link" && len(inlineHrefs) > 0) {
+				href, inlineHrefs = inlineHrefs[0], inlineHrefs[1:]
+			}
+			if href != "" {
+				text = "[" + text + "](" + href + ")"
+				break
+			}
+		}
+		sb.WriteString(text)
+	}
+	return sb.String()
+}
+
+func spanMarks(span map[string]any) []string {
+	if marks, ok := span["marks"].([]any); ok {
+		var out []string
+		for _, m := range marks {
+			if key, ok := m.(string); ok {
+				out = append(out, key)
+			}
+		}
+		return out
+	}
+	if marks, ok := span["marks"].([]string); ok {
+		return marks
+	}
+	return nil
+}

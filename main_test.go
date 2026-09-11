@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"mangile-cli/internal/uploads"
 )
 
 func withArgs(t *testing.T, args []string) {
@@ -87,5 +89,41 @@ func TestRunImportUsage(t *testing.T) {
 	withArgs(t, []string{"mangile", "import"})
 	if got := run(); got == 0 {
 		t.Error("alt komutsuz import sıfır dışı kod vermeli")
+	}
+}
+
+func TestRunRollbackUnknownID(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("MANGILE_UPLOADS", dir)
+	t.Setenv("SANITY_TOKEN", "sahte")
+	j := uploads.NewJournal("seri-1", "manga")
+	if err := j.Save(dir); err != nil {
+		t.Fatal(err)
+	}
+	withArgs(t, []string{"mangile", "rollback", "yok-123"})
+	if got := run(); got == 0 {
+		t.Error("bilinmeyen günlük ID'si sıfır dışı kod vermeli")
+	}
+}
+
+func TestRunRollbackList(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("MANGILE_UPLOADS", dir)
+	t.Setenv("SANITY_TOKEN", "sahte")
+	j := uploads.NewJournal("seri-1", "manga")
+	if err := j.Save(dir); err != nil {
+		t.Fatal(err)
+	}
+	withArgs(t, []string{"mangile", "rollback", "--list"})
+	if got := run(); got != 0 {
+		t.Errorf("--list 0 vermeli: %d", got)
+	}
+}
+
+func TestRunUpgradeDryRun(t *testing.T) {
+	withUploads(t)
+	withArgs(t, []string{"mangile", "--dry-run", "upgrade"})
+	if got := run(); got != 0 {
+		t.Errorf("dry-run upgrade 0 vermeli: %d", got)
 	}
 }

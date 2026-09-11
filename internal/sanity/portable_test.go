@@ -2,6 +2,32 @@ package sanity
 
 import "testing"
 
+func TestTextFromPortableTextRoundTrip(t *testing.T) {
+	text := "# Başlık\n\nDüz paragraf.\n\n- Madde\n\n> Alıntı"
+	back := TextFromPortableText(PortableTextFromText(text))
+	if back != text {
+		t.Errorf("dönüş turu bozuldu:\n%q\nvs\n%q", back, text)
+	}
+}
+
+func TestTextFromPortableTextLink(t *testing.T) {
+	blocks := PortableTextFromText("Bak [buraya](https://ornek.com/x) tıkla.")
+	back := TextFromPortableText(blocks)
+	if back != "Bak [buraya](https://ornek.com/x) tıkla." {
+		t.Errorf("link korunmalı: %q", back)
+	}
+}
+
+func TestTextFromPortableTextSkipsImage(t *testing.T) {
+	blocks := []map[string]any{
+		ImageBlock("image-abc"),
+		ParagraphBlock("Merhaba"),
+	}
+	if back := TextFromPortableText(blocks); back != "Merhaba" {
+		t.Errorf("görsel blok atlanmalı: %q", back)
+	}
+}
+
 func TestPortableTextFromText(t *testing.T) {
 	text := `# Birinci Bölüm
 

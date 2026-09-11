@@ -72,11 +72,13 @@ mangile run            # etkileşimli ana menü (varsayılan)
 mangile init           # uploads/ çalışma alanını hazırlar
 mangile publish        # bekleyen tüm taslakları yayınlar
 mangile rollback       # işlem günlüklerini listeler / geri alır
+mangile upgrade        # en son sürüme yükseltir
 mangile web            # yerel sürükle-bırak yükleme sunucusu (localhost:8787)
 mangile chapter        # bölüm listele / düzenle / sil (alt komut: list, edit, delete)
 mangile create         # seri oluştur [--fetch ile Jikan'dan bilgi çek]
 mangile update         # seri güncelle [--fetch ile eksikleri doldur]
 mangile doctor         # tutarlılık taraması
+mangile sync           # Sanity'deki eksik bölümleri yerele indir
 mangile import         # içe aktar (alt komut: csv <dosya> [seri], migrate)
 mangile --dry-run run  # planı gösterir, hiçbir şey yazmaz
 mangile version        # sürüm bilgisi
@@ -90,15 +92,17 @@ Etkileşimli menü (`mangile run`) Türkçedir.
 | İşlem | Nasıl ulaşılır | Ne yapar |
 |---|---|---|
 | Manga bölümü yükle | `run` → _Manga bölümü yükle_ | Sayfaları sıralar, görsel asset'lerini yükler, taslak bölüm yazar |
-| Light novel bölümü yükle | `run` → _Light novel bölümü yükle_ | Metin dosyasını ayrıştırır, Portable Text içeriği üretir, taslak yazar |
+| Light novel bölümü yükle | `run` → _Light novel bölümü yükle_ | Metin dosyasını bölüme dönüştürür, taslak yazar |
 | Seri dizini oluştur | `run` → _Seri dizini oluştur_ | `uploads/<Seri>/` dizinini bir `config.yaml` ile oluşturur |
 | Seri durumunu göster | `run` → _Seri durumunu göster_ | Yerel serileri Sanity ile `myAnimeListId` üzerinden karşılaştırır |
 | Taslakları yayınla | `publish` (veya menüden) | `drafts.**` cinsindeki tüm dokümanları 20'lik gruplar hâlinde yayınlar |
-| Geri alma | `rollback` (veya menüden) | Bir günlüğü seçip işlemlerini geri alır |
+| Geri alma | `rollback [--list]` (veya menüden) | Bir günlüğü seçip işlemlerini geri alır |
+| Yükseltme | `upgrade` (veya menüden) | En son sürümü indirip kurulu dosyanın yerine koyar |
 | Bölüm düzenle / sil | `chapter` (veya menüden) | Sanity'deki bölümleri listeler; başlık ve cilt düzenler, bölüm siler |
 | Seri oluştur | `create [--fetch]` (veya menüden) | Sanity'de seri taslağı açar, yerel dizin + config yazar; `--fetch` Jikan'dan başlık/özet/kapak çeker |
 | Seri güncelle | `update [--fetch]` (veya menüden) | Yayın durumu ve etiketleri günceller; `--fetch` eksik başlık/özet/kapağı doldurur |
 | Tutarlılık tara | `doctor` (veya menüden) | Yerel dizin + Sanity tutarlılık sorunlarını raporlar |
+| Eşitle | `sync` (veya menüden) | Sanity'deki eksik bölümleri yerel klasörlere indirir |
 | Web yükleyici | `web` (veya menüden) | Tarayıcıdan sürükle-bırak ile sayfa dosyası yükler |
 
 ## Web Yükleyici
@@ -139,14 +143,22 @@ mangile doctor
 
 Yerel dizini ve (token varsa) Sanity'yi tarar: `config.yaml` eksikliği, MAL ID yokluğu, geçersiz tür/durum, kanonik dışı etiket, sayfasız bölüm klasörü, numarasız bölüm, MAL ID çakışması ve karşılığı bulunamayan seriler raporlanır. Salt okunurdur; sorun varsa çıkış kodu 1 döner.
 
+## Eşitleme
+
+```bash
+mangile sync
+```
+
+Sanity'deki bölümlerle yerel klasörleri karşılaştırır ve **yerelde olmayan bölümleri indirir**. Manga sayfaları `Bölüm N/001.jpg` düzeninde, novel bölümleri `content.txt` + `baslik.txt` + `data.txt` olarak yazılır. Yerelde zaten olan klasörlere dokunulmaz, üzerine yazılmaz. İndirmeden önce liste gösterilir ve onay istenir. İstemeyen kullanıcılar bu komutu çalıştırmaz; içerik akışı etkilenmez.
+
 ## İçe Aktar
 
 ```bash
 mangile import csv veri.csv "Seri Adı"   # Web Scraper CSV'sinden bölüm klasörleri üretir
-mangile import migrate                   # eski gömülü chapters[] dizisini novelChapter taslaklarına taşır
+mangile import migrate                   # Sanity'deki eski formatlı bölümleri yeni formata taşır
 ```
 
-CSV içe aktarma, `data` sütunundan cilt/bölüm numaralarını çıkarıp `Cilt 001 Bölüm 002 - Başlık` klasörleri ve her sütuna bir `.txt` yazar. Migrasyon, deterministik kimliklerle (`novelChapter-<MAL>-<cilt>-<bölüm>`) taslak üretir; eski `chapters[]` dizisine dokunmaz, Studio'dan doğrulayıp temizlersiniz.
+CSV içe aktarma, `data` sütunundan cilt/bölüm numaralarını çıkarıp `Cilt 001 Bölüm 002 - Başlık` klasörleri ve her sütuna bir `.txt` yazar. Taşıma, bölümleri taslak olarak üretir; mevcut kayıtlara dokunmaz, Studio'dan doğrulayıp temizlersiniz.
 
 ### Örnek oturum
 
@@ -223,19 +235,28 @@ Bölüm numarası klasör adından çıkarılır (örn. "Bölüm 12"). İsteğe 
 3. Bölüm **taslak** olarak yazılır — siteye henüz düşmez
 4. Hemen yayınlamak isteyip istemediğiniz sorulur; istemezseniz Sanity Studio'da inceledikten sonra `mangile publish` ile yayınlarsınız
 
-Bölümü yeniden yüklemek, belirleyici kimlikler aracılığıyla mevcut kaydı ezer (`mangaChapter-<MAL>-<cilt>-<bölüm>`); böylece `latestChapters`'ta hiçbir zaman dupelike birikmez.
+Aynı bölümü yeniden yüklemek mevcut kaydın üzerine yazar; yinelenen kayıt birikmez.
 
 ## Geri Alma
 
-Her oturum, CLI kapansa bile temiz geri alma sağlayan bir günlüğü `uploads/.state/journal-<ts>.json` dosyasına yazar:
+Her oturum, CLI kapansa bile geri almayı sağlayan bir işlem günlüğü tutar (`uploads/.state` altında):
 
-- Yeni oluşturulan bölüm dokümanları silinir
-- Yaması yapılan dokümanlar (örn. `scan.titles`) Sanity `revert` ile geri alınır
-- Başka hiçbir yerde referansı olmayan asset'ler temizlenir
+- Yeni oluşturulan bölümler silinir
+- Değiştirilen kayıtlar (örn. çeviri grubu listesi) eski haline döndürülür
+- Başka hiçbir yerde kullanılmayan görseller temizlenir
 
 ```bash
-mangile rollback
+mangile rollback --list   # günlükleri listeler
+mangile rollback <günlük> # seçmeden doğrudan geri alır
 ```
+
+## Yükseltme
+
+```bash
+mangile upgrade
+```
+
+En son sürümü Releases sayfasından indirir, sağlama toplamını doğrular ve çalışmakta olan dosyanın yerine koyar. Güncellemeden önce onay sorulur; bir şey ters giderse eski sürüm geri alınır. Yeniden kurulum, token veya içerik dizini işlemi gerekmez.
 
 ## Ortam Değişkenleri
 
@@ -264,8 +285,7 @@ mangile rollback
 - **Faz 1** ✓ — İskelet, pagesorter, manga/novel yükleme, taslak/yayın, geri alma
 - **Faz 2** ✓ — Yerleşik web sunucusu, bölüm düzenle/sil + asset temizliği (cbr/7z sonraya bırakıldı)
 - **Faz 3** ✓ — `create/update --fetch` (Jikan), `doctor`, `import` (CSV + migrasyon)
-- **Faz 4** ✓ — Cilalama, uçtan uca testler, eski araç klasörlerinin kaldırılması (içerik `Documents/mangile` altına taşındı)
-- **Faz 4** — Cilalama, uçtan uca testler, eski araçların kaldırılması
+- **Faz 4** ✓ — Cilalama, uçtan uca testler, genel iyileştirmeler
 
 ## Lisans
 

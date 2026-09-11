@@ -29,6 +29,8 @@ func run() int {
 			dryRun = true
 		case "--fetch":
 			fetch = true
+		case "--list":
+			positional = append(positional, "--list")
 		case "--version", "-v":
 			versionRequested = true
 		default:
@@ -61,6 +63,7 @@ func run() int {
 
 	c := cfg.Load()
 	c.DryRun = dryRun
+	c.Version = version
 	a := app.New(c)
 
 	if !cfg.HasUserConfig() && cmd != "init" {
@@ -81,7 +84,11 @@ func run() int {
 	case "publish":
 		return errCode(a.PublishAll(ctx))
 	case "rollback":
-		return errCode(a.Rollback(ctx))
+		sub := ""
+		if len(positional) > 1 {
+			sub = positional[1]
+		}
+		return errCode(a.Rollback(ctx, sub))
 	case "web":
 		return errCode(a.WebServe(ctx))
 	case "chapter":
@@ -94,8 +101,12 @@ func run() int {
 		return errCode(a.CreateSeries(ctx, fetch))
 	case "update":
 		return errCode(a.UpdateSeries(ctx, fetch))
+	case "upgrade":
+		return errCode(a.Upgrade(ctx))
 	case "doctor":
 		return errCode(a.Doctor(ctx))
+	case "sync":
+		return errCode(a.Sync(ctx))
 	case "import":
 		sub := ""
 		if len(positional) > 1 {
@@ -143,12 +154,14 @@ func printHelp() {
 	fmt.Println("  run          İnteraktif ana menü (varsayılan)")
 	fmt.Println("  init         uploads/ dizinini ve yapılandırmayı hazırlar")
 	fmt.Println("  publish      Tüm taslakları (drafts.**) yayınlar")
-	fmt.Println("  rollback     İşlem günlüklerinden geri alma")
+	fmt.Println("  rollback     İşlem günlüklerinden geri alma (alt komut: --list, <günlükID>)")
+	fmt.Println("  upgrade      En son sürüme yükselt")
 	fmt.Println("  web          Yerel sürükle-bırak yükleme sunucusu (localhost:8787)")
 	fmt.Println("  chapter      Bölüm listele / düzenle / sil (alt komut: list, edit, delete)")
 	fmt.Println("  create       Seri oluştur [--fetch ile Jikan'dan bilgi çek]")
 	fmt.Println("  update       Seri güncelle [--fetch ile eksikleri doldur]")
 	fmt.Println("  doctor       Tutarlılık taraması")
+	fmt.Println("  sync         Sanity'deki eksik bölümleri yerele indir")
 	fmt.Println("  import       İçe aktar (alt komut: csv <dosya> [seri], migrate)")
 	fmt.Println("  version      Sürüm bilgisini gösterir")
 	fmt.Println("  help         Bu yardımı gösterir")

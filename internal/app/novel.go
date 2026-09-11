@@ -312,7 +312,7 @@ func readImageURLs(dir string) []string {
 
 func (a *App) uploadNovelChapter(ctx context.Context, journal *uploads.Journal, series *uploads.Series, sanityID string, ch *NovelChapter) (string, bool, error) {
 	if len(ch.Text) > constants.DocumentSizeLimit {
-		tui.PrintWarn("Bölüm %s içerik %d bayt — Sanity doküman limiti %d aşıldı. Yine de yükleniyor (parçalama Faz 2'de eklenecek).", ch.Display, len(ch.Text), constants.DocumentSizeLimit)
+		tui.PrintWarn("Bölüm %s içerik %d bayt — önerilen doküman boyutu %d aşıldı. Yükleme deneniyor; hata verirse bölümü iki klasöre ayırın.", ch.Display, len(ch.Text), constants.DocumentSizeLimit)
 	}
 	vol := seriesVolume(ch.Volume)
 	content := sanity.PortableTextFromText(ch.Text)

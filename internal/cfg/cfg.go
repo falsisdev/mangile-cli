@@ -18,6 +18,7 @@ type Config struct {
 	Token      string
 	UploadsDir string
 	WebPort    int
+	Version    string
 	DryRun     bool
 }
 

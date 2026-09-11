@@ -9,10 +9,7 @@ import (
 	"mangile-cli/internal/uploads"
 )
 
-func (a *App) Rollback(ctx context.Context) error {
-	if err := a.requireToken(); err != nil {
-		return err
-	}
+func (a *App) Rollback(ctx context.Context, arg string) error {
 	tui.PrintTitle("Geri Alma (Rollback)")
 	journals, err := uploads.ListJournals(a.uploadsDir())
 	if err != nil {
@@ -22,24 +19,52 @@ func (a *App) Rollback(ctx context.Context) error {
 		tui.PrintInfo("Geri alınacak işlem günlüğü yok.")
 		return nil
 	}
-	var labels []string
-	for _, j := range journals {
-		labels = append(labels, fmt.Sprintf("%s | %s | %d bölüm, %d asset", j.ID, j.CreatedAt.Format("2006-01-02 15:04"), len(j.CreatedDocs), len(j.Assets)))
+	if arg == "--list" || arg == "list" {
+		tui.PrintInfo("---- İşlem Günlükleri (%d) ----", len(journals))
+		for _, j := range journals {
+			tui.PrintInfo("  • %s | %s | %d bölüm, %d asset", j.ID, j.CreatedAt.Format("2006-01-02 15:04"), len(j.CreatedDocs), len(j.Assets))
+		}
+		return nil
 	}
-	var pick string
-	if err := tui.SelectOne("Geri alınacak işlem", labels, &pick); err != nil {
+	if err := a.requireToken(); err != nil {
 		return err
 	}
 	var journal *uploads.Journal
-	for i, l := range labels {
-		if l == pick {
-			journal = journals[i]
-			break
+	if arg == "" {
+		var labels []string
+		for _, j := range journals {
+			labels = append(labels, fmt.Sprintf("%s | %s | %d bölüm, %d asset", j.ID, j.CreatedAt.Format("2006-01-02 15:04"), len(j.CreatedDocs), len(j.Assets)))
+		}
+		var pick string
+		if err := tui.SelectOne("Geri alınacak işlem", labels, &pick); err != nil {
+			return err
+		}
+		journal = nil
+		for i, l := range labels {
+			if l == pick {
+				journal = journals[i]
+				break
+			}
+		}
+		if journal == nil {
+			return fmt.Errorf("geçersiz seçim")
+		}
+	} else {
+		journal = nil
+		for _, j := range journals {
+			if j.ID == arg {
+				journal = j
+				break
+			}
+		}
+		if journal == nil {
+			return fmt.Errorf("günlük bulunamadı: %s (listelemek için 'mangile rollback --list')", arg)
 		}
 	}
-	if journal == nil {
-		return fmt.Errorf("geçersiz seçim")
-	}
+	return a.rollbackJournal(ctx, journal)
+}
+
+func (a *App) rollbackJournal(ctx context.Context, journal *uploads.Journal) error {
 	if !tui.ConfirmOrAbort(fmt.Sprintf("'%s' işlemi tamamen geri alınsın mı?", journal.ID)) {
 		return nil
 	}
