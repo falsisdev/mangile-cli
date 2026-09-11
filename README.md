@@ -74,6 +74,10 @@ mangile publish        # bekleyen tüm taslakları yayınlar
 mangile rollback       # işlem günlüklerini listeler / geri alır
 mangile web            # yerel sürükle-bırak yükleme sunucusu (localhost:8787)
 mangile chapter        # bölüm listele / düzenle / sil (alt komut: list, edit, delete)
+mangile create         # seri oluştur [--fetch ile Jikan'dan bilgi çek]
+mangile update         # seri güncelle [--fetch ile eksikleri doldur]
+mangile doctor         # tutarlılık taraması
+mangile import         # içe aktar (alt komut: csv <dosya> [seri], migrate)
 mangile --dry-run run  # planı gösterir, hiçbir şey yazmaz
 mangile version        # sürüm bilgisi
 mangile help           # kullanım yardımı
@@ -92,6 +96,9 @@ Etkileşimli menü (`mangile run`) Türkçedir.
 | Taslakları yayınla | `publish` (veya menüden) | `drafts.**` cinsindeki tüm dokümanları 20'lik gruplar hâlinde yayınlar |
 | Geri alma | `rollback` (veya menüden) | Bir günlüğü seçip işlemlerini geri alır |
 | Bölüm düzenle / sil | `chapter` (veya menüden) | Sanity'deki bölümleri listeler; başlık ve cilt düzenler, bölüm siler |
+| Seri oluştur | `create [--fetch]` (veya menüden) | Sanity'de seri taslağı açar, yerel dizin + config yazar; `--fetch` Jikan'dan başlık/özet/kapak çeker |
+| Seri güncelle | `update [--fetch]` (veya menüden) | Yayın durumu ve etiketleri günceller; `--fetch` eksik başlık/özet/kapağı doldurur |
+| Tutarlılık tara | `doctor` (veya menüden) | Yerel dizin + Sanity tutarlılık sorunlarını raporlar |
 | Web yükleyici | `web` (veya menüden) | Tarayıcıdan sürükle-bırak ile sayfa dosyası yükler |
 
 ## Web Yükleyici
@@ -114,6 +121,32 @@ mangile chapter delete # bölümü siler
 ```
 
 Düzenleme, bölümün başlık ve cilt alanını yamalar; işlem günlüğe yazılır ve `mangile rollback` ile geri alınabilir. Silme, bölümün taslak ve yayınlanmış kopyasını birlikte kaldırır, başka hiçbir yerde kullanılmayan görselleri temizler ve silinen kaydın özetini günlüğe işler. Novel metin içeriğinin düzenlenmesi bu sürümde yoktur.
+
+## Seri Oluştur / Güncelle
+
+```bash
+mangile create --fetch   # MAL ID sorar, Jikan'dan başlık/özet/kapak çeker
+mangile update --fetch   # eksik alanları doldurur, durum ve etiketleri günceller
+```
+
+`create`, aynı MAL ID'nin Sanity'de kayıtlı olup olmadığını denetler; kayıtlıysa `update` önerir. Seri belgesi taslak olarak açılır (`manga-<MAL>` / `lightNovel-<MAL>`), kapak görseli indirilip asset olarak yüklenir, yerel `uploads/<Seri>/config.yaml` yazılır. Yayınlamadan önce onay sorulur. Jikan tür bilgisi yalnızca öneri amaçlı gösterilir; seri türünü (manga/lightNovel) siz seçersiniz.
+
+## Tutarlılık Taraması
+
+```bash
+mangile doctor
+```
+
+Yerel dizini ve (token varsa) Sanity'yi tarar: `config.yaml` eksikliği, MAL ID yokluğu, geçersiz tür/durum, kanonik dışı etiket, sayfasız bölüm klasörü, numarasız bölüm, MAL ID çakışması ve karşılığı bulunamayan seriler raporlanır. Salt okunurdur; sorun varsa çıkış kodu 1 döner.
+
+## İçe Aktar
+
+```bash
+mangile import csv veri.csv "Seri Adı"   # Web Scraper CSV'sinden bölüm klasörleri üretir
+mangile import migrate                   # eski gömülü chapters[] dizisini novelChapter taslaklarına taşır
+```
+
+CSV içe aktarma, `data` sütunundan cilt/bölüm numaralarını çıkarıp `Cilt 001 Bölüm 002 - Başlık` klasörleri ve her sütuna bir `.txt` yazar. Migrasyon, deterministik kimliklerle (`novelChapter-<MAL>-<cilt>-<bölüm>`) taslak üretir; eski `chapters[]` dizisine dokunmaz, Studio'dan doğrulayıp temizlersiniz.
 
 ### Örnek oturum
 
@@ -230,7 +263,7 @@ mangile rollback
 
 - **Faz 1** ✓ — İskelet, pagesorter, manga/novel yükleme, taslak/yayın, geri alma
 - **Faz 2** (devam ediyor) — Yerleşik web sunucusu ✓, bölüm düzenle/sil + asset temizliği ✓, cbr/7z desteği (sonraya bırakıldı)
-- **Faz 3** — `create/update --fetch` (Jikan meta verisi), `doctor`, `import` (migrasyon + CSV)
+- **Faz 3** (devam ediyor) — `create/update --fetch` (Jikan) ✓, `doctor` ✓, `import` (CSV + migrasyon) ✓
 - **Faz 4** — Cilalama, uçtan uca testler, eski araçların kaldırılması
 
 ## Lisans

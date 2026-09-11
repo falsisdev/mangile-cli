@@ -20,12 +20,15 @@ func main() {
 func run() int {
 	args := os.Args[1:]
 	dryRun := false
+	fetch := false
 	versionRequested := false
 	var positional []string
 	for _, a := range args {
 		switch a {
 		case "--dry-run":
 			dryRun = true
+		case "--fetch":
+			fetch = true
 		case "--version", "-v":
 			versionRequested = true
 		default:
@@ -87,9 +90,33 @@ func run() int {
 			sub = positional[1]
 		}
 		return errCode(a.ChapterManage(ctx, sub))
-	case "create", "update", "import", "doctor":
-		tui.PrintWarn("'%s' komutu Faz 3 kapsamında eklenecek.", cmd)
-		return 0
+	case "create":
+		return errCode(a.CreateSeries(ctx, fetch))
+	case "update":
+		return errCode(a.UpdateSeries(ctx, fetch))
+	case "doctor":
+		return errCode(a.Doctor(ctx))
+	case "import":
+		sub := ""
+		if len(positional) > 1 {
+			sub = positional[1]
+		}
+		switch sub {
+		case "csv":
+			path, name := "", ""
+			if len(positional) > 2 {
+				path = positional[2]
+			}
+			if len(positional) > 3 {
+				name = positional[3]
+			}
+			return errCode(a.ImportCSV(ctx, path, name))
+		case "migrate":
+			return errCode(a.ImportMigrate(ctx))
+		default:
+			fmt.Fprintln(os.Stderr, "Kullanım: mangile import [csv <dosya> [seri] | migrate]")
+			return 1
+		}
 	default:
 		fmt.Fprintln(os.Stderr, "Bilinmeyen komut:", cmd)
 		printHelp()
@@ -119,11 +146,16 @@ func printHelp() {
 	fmt.Println("  rollback     İşlem günlüklerinden geri alma")
 	fmt.Println("  web          Yerel sürükle-bırak yükleme sunucusu (localhost:8787)")
 	fmt.Println("  chapter      Bölüm listele / düzenle / sil (alt komut: list, edit, delete)")
+	fmt.Println("  create       Seri oluştur [--fetch ile Jikan'dan bilgi çek]")
+	fmt.Println("  update       Seri güncelle [--fetch ile eksikleri doldur]")
+	fmt.Println("  doctor       Tutarlılık taraması")
+	fmt.Println("  import       İçe aktar (alt komut: csv <dosya> [seri], migrate)")
 	fmt.Println("  version      Sürüm bilgisini gösterir")
 	fmt.Println("  help         Bu yardımı gösterir")
 	fmt.Println()
 	fmt.Println("Global bayraklar:")
 	fmt.Println("  --dry-run    Hiçbir şey yazılmaz, yalnızca plan gösterilir")
+	fmt.Println("  --fetch      create/update ile Jikan'dan bilgi çeker")
 	fmt.Println()
 	fmt.Println("Ortam değişkenleri:")
 	fmt.Println("  SANITY_TOKEN                Zorunlu (yükleme/yayın işlemleri için)")

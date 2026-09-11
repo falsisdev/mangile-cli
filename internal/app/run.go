@@ -22,7 +22,11 @@ func (a *App) Run(ctx context.Context) error {
 		"Light novel bölümü yükle",
 		"Yeni seri dizini oluştur",
 		"Bölüm düzenle / sil",
+		"Seri oluştur (Jikan destekli)",
+		"Seri güncelle",
 		"Web yükleyici (tarayıcı)",
+		"Tutarlılık tara (doctor)",
+		"İçe aktar (CSV / migrasyon)",
 		"Taslakları yayınla",
 		"Değişiklikleri geri al (rollback)",
 		"Çıkış",
@@ -34,7 +38,7 @@ func (a *App) Run(ctx context.Context) error {
 			return err
 		}
 		switch pick {
-		case actions[8]:
+		case actions[12]:
 			tui.PrintInfo("Görüşürüz.")
 			return nil
 		case actions[0]:
@@ -58,14 +62,38 @@ func (a *App) Run(ctx context.Context) error {
 				tui.PrintError("%v", err)
 			}
 		case actions[5]:
-			if err := a.WebServe(ctx); err != nil {
+			if tui.ConfirmOrAbort("Jikan'dan bilgi çekilsin mi?") {
+				if err := a.CreateSeries(ctx, true); err != nil {
+					tui.PrintError("%v", err)
+				}
+			} else if err := a.CreateSeries(ctx, false); err != nil {
 				tui.PrintError("%v", err)
 			}
 		case actions[6]:
-			if err := a.PublishAll(ctx); err != nil {
+			if tui.ConfirmOrAbort("Jikan'dan eksikler doldurulsun mu?") {
+				if err := a.UpdateSeries(ctx, true); err != nil {
+					tui.PrintError("%v", err)
+				}
+			} else if err := a.UpdateSeries(ctx, false); err != nil {
 				tui.PrintError("%v", err)
 			}
 		case actions[7]:
+			if err := a.WebServe(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[8]:
+			if err := a.Doctor(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[9]:
+			if err := a.ImportMenu(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[10]:
+			if err := a.PublishAll(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[11]:
 			if err := a.Rollback(ctx); err != nil {
 				tui.PrintError("%v", err)
 			}
