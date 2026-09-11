@@ -2,15 +2,24 @@
 
 A single, purpose-built CLI for publishing and managing Mangile content in Sanity. It consolidates chapter upload, draft management, publishing, and rollback into one interactive workflow.
 
+[![Release](https://img.shields.io/github/v/release/falsisdev/mangile-cli?sort=semver)](https://github.com/falsisdev/mangile-cli/releases)
+
 ## Installation
 
-With Go toolchain installed:
+### Prebuilt binaries (recommended)
 
+Download the archive for your platform from the [Releases](https://github.com/falsisdev/mangile-cli/releases) page. No toolchain or source checkout needed.
+
+**macOS / Linux:**
 ```bash
-go install github.com/falsisdev/mangile-cli@latest
+tar xzf mangile_<version>_darwin_<arch>.tar.gz   # or mangile_<version>_linux_<arch>.tar.gz
+sudo mv mangile /usr/local/bin/
 ```
+**Windows:** Extract `mangile_<version>_windows_<arch>.zip` and add the folder to your `PATH`, or call it directly as `.\mangile.exe`.
 
-Or build from source:
+On macOS, the first launch may show an "unidentified developer" prompt (binaries are unsigned). Right-click the file, select **Open**, then confirm once. Windows SmartScreen shows a similar "unknown publisher" warning — choose **More info → Run anyway**.
+
+### From source
 
 ```bash
 git clone https://github.com/falsisdev/mangile-cli.git
@@ -20,14 +29,16 @@ go build -o mangile .
 
 ## Getting Started
 
-Export your Sanity API token and bootstrap the workspace:
+On first run, the CLI starts a setup wizard that asks where your content should live (default: `Documents/mangile`) and creates the workspace there. The choice is saved to your user configuration, so the command works from any terminal. You can re-run `mangile init` at any time.
+
+Export your Sanity API token, then open the menu:
 
 ```bash
-export SANITY_TOKEN="your_sanity_token"
-mangile init
+export SANITY_TOKEN="your_sanity_token"   # Windows: setx SANITY_TOKEN "your_sanity_token"
+mangile run
 ```
 
-`init` scaffolds the `uploads/` directory where your content lives.
+The content root is resolved in this order: `MANGILE_UPLOADS` env var → user configuration → `./uploads`.
 
 ## Usage
 
@@ -146,12 +157,24 @@ mangile rollback
 
 ## Environment Variables
 
-| Variable          | Default     | Description                                        |
-| ----------------- | ----------- | -------------------------------------------------- |
-| `SANITY_TOKEN`    | —           | Sanity API token (required for network operations) |
-| `MANGILE_UPLOADS` | `./uploads` | Content root directory                             |
+| Variable          | Default                         | Description                                        |
+| ----------------- | ------------------------------- | -------------------------------------------------- |
+| `SANITY_TOKEN`    | —                               | Sanity API token (required for network operations) |
+| `MANGILE_UPLOADS` | user config → `./uploads`       | Content root directory                             |
 
 `MANGILE_PROJECT_ID`, `MANGILE_DATASET`, and `MANGILE_API_VERSION` are also honored and default to the Mangile production values (`1yge7tlr`, `production`, `v2024-01-01`).
+
+### User configuration
+
+First-run settings are stored at:
+
+- **macOS:** `~/Library/Application Support/mangile/config.yaml`
+- **Windows:** `%AppData%\mangile\config.yaml`
+- **Linux:** `~/.config/mangile/config.yaml`
+
+It currently holds the content directory (`uploadsPath`). `MANGILE_UPLOADS` always overrides it.
+
+> **Windows note:** for Turkish output on the legacy `cmd.exe`, run `chcp 65001`. PowerShell and Windows Terminal handle it natively.
 
 ## Roadmap
 

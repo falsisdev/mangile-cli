@@ -11,6 +11,8 @@ import (
 	"mangile-cli/internal/tui"
 )
 
+var version = "dev"
+
 func main() {
 	os.Exit(run())
 }
@@ -18,17 +20,26 @@ func main() {
 func run() int {
 	args := os.Args[1:]
 	dryRun := false
+	versionRequested := false
 	var positional []string
 	for _, a := range args {
-		if a == "--dry-run" {
+		switch a {
+		case "--dry-run":
 			dryRun = true
-			continue
+		case "--version", "-v":
+			versionRequested = true
+		default:
+			if strings.HasPrefix(a, "-") {
+				fmt.Fprintln(os.Stderr, "Bilinmeyen bayrak:", a)
+				return 1
+			}
+			positional = append(positional, a)
 		}
-		if strings.HasPrefix(a, "-") {
-			fmt.Fprintln(os.Stderr, "Bilinmeyen bayrak:", a)
-			return 1
-		}
-		positional = append(positional, a)
+	}
+
+	if versionRequested {
+		fmt.Printf("mangile %s\n", version)
+		return 0
 	}
 
 	cmd := "run"
@@ -36,11 +47,29 @@ func run() int {
 		cmd = positional[0]
 	}
 
+	switch cmd {
+	case "version":
+		fmt.Printf("mangile %s\n", version)
+		return 0
+	case "help", "--help", "-h":
+		printHelp()
+		return 0
+	}
+
 	c := cfg.Load()
 	c.DryRun = dryRun
 	a := app.New(c)
-	ctx := context.Background()
 
+	if !cfg.HasUserConfig() && cmd != "init" {
+		if !dryRun {
+			if err := a.RunSetupWizard(); err != nil {
+				tui.PrintError("Kurulum sihirbazı başarısız: %v", err)
+				return 1
+			}
+		}
+	}
+
+	ctx := context.Background()
 	switch cmd {
 	case "run":
 		return errCode(a.Run(ctx))
@@ -52,9 +81,6 @@ func run() int {
 		return errCode(a.Rollback(ctx))
 	case "create", "update", "chapter", "web", "import", "doctor":
 		tui.PrintWarn("'%s' komutu Faz 2/3 kapsamında eklenecek.", cmd)
-		return 0
-	case "help", "--help", "-h":
-		printHelp()
 		return 0
 	default:
 		fmt.Fprintln(os.Stderr, "Bilinmeyen komut:", cmd)
@@ -74,6 +100,8 @@ func errCode(err error) int {
 func printHelp() {
 	fmt.Println("Mangile CLI — the_mangile içerik yükleyici")
 	fmt.Println()
+	fmt.Printf("Sürüm: %s\n", version)
+	fmt.Println()
 	fmt.Println("Kullanım: mangile [global] <komut>")
 	fmt.Println()
 	fmt.Println("Komutlar:")
@@ -81,6 +109,7 @@ func printHelp() {
 	fmt.Println("  init         uploads/ dizinini ve yapılandırmayı hazırlar")
 	fmt.Println("  publish      Tüm taslakları (drafts.**) yayınlar")
 	fmt.Println("  rollback     İşlem günlüklerinden geri alma")
+	fmt.Println("  version      Sürüm bilgisini gösterir")
 	fmt.Println("  help         Bu yardımı gösterir")
 	fmt.Println()
 	fmt.Println("Global bayraklar:")
@@ -90,7 +119,11 @@ func printHelp() {
 	fmt.Println("  SANITY_TOKEN                Zorunlu (yükleme/yayın işlemleri için)")
 	fmt.Println("  MANGILE_PROJECT_ID          Varsayılan: 1yge7tlr")
 	fmt.Println("  MANGILE_DATASET             Varsayılan: production")
-	fmt.Println("  MANGILE_UPLOADS             Varsayılan: ./uploads")
+	fmt.Println("  MANGILE_UPLOADS             Varsayılan: kullanıcı config'i > ./uploads")
+	fmt.Println()
+	fmt.Println("Kullanıcı yapılandırması:")
+	fmt.Println("  os.UserConfigDir()/mangile/config.yaml (macOS: ~/Library/Application Support/mangile/)")
+	fmt.Println("  İlk çalıştırmada otomatik kurulum sihirbazı rehberlik eder.")
 	fmt.Println()
 	fmt.Println("Dizin yapısı: uploads/<Seri>/Bölüm NN/ ... (manga: görseller; novel: text.txt/baslik.txt/data.txt/image_N.txt veya tek .txt/.md)")
 }
