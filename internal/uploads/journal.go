@@ -18,6 +18,7 @@ type Journal struct {
 	SeriesRev   string         `json:"seriesRev"`
 	CreatedDocs []string       `json:"createdDocs"`
 	PatchedDocs []JournalPatch `json:"patchedDocs"`
+	DeletedDocs []DeletedDoc   `json:"deletedDocs,omitempty"`
 	Assets      []string       `json:"assets"`
 }
 
@@ -25,6 +26,13 @@ type JournalPatch struct {
 	ID     string         `json:"id"`
 	Rev    string         `json:"rev"`
 	Before map[string]any `json:"before,omitempty"`
+}
+
+type DeletedDoc struct {
+	ID       string         `json:"id"`
+	Type     string         `json:"type,omitempty"`
+	Title    string         `json:"title,omitempty"`
+	Snapshot map[string]any `json:"snapshot,omitempty"`
 }
 
 func NewJournal(seriesID, seriesType string) *Journal {

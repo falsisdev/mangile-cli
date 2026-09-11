@@ -79,8 +79,16 @@ func run() int {
 		return errCode(a.PublishAll(ctx))
 	case "rollback":
 		return errCode(a.Rollback(ctx))
-	case "create", "update", "chapter", "web", "import", "doctor":
-		tui.PrintWarn("'%s' komutu Faz 2/3 kapsamında eklenecek.", cmd)
+	case "web":
+		return errCode(a.WebServe(ctx))
+	case "chapter":
+		sub := ""
+		if len(positional) > 1 {
+			sub = positional[1]
+		}
+		return errCode(a.ChapterManage(ctx, sub))
+	case "create", "update", "import", "doctor":
+		tui.PrintWarn("'%s' komutu Faz 3 kapsamında eklenecek.", cmd)
 		return 0
 	default:
 		fmt.Fprintln(os.Stderr, "Bilinmeyen komut:", cmd)
@@ -109,6 +117,8 @@ func printHelp() {
 	fmt.Println("  init         uploads/ dizinini ve yapılandırmayı hazırlar")
 	fmt.Println("  publish      Tüm taslakları (drafts.**) yayınlar")
 	fmt.Println("  rollback     İşlem günlüklerinden geri alma")
+	fmt.Println("  web          Yerel sürükle-bırak yükleme sunucusu (localhost:8787)")
+	fmt.Println("  chapter      Bölüm listele / düzenle / sil (alt komut: list, edit, delete)")
 	fmt.Println("  version      Sürüm bilgisini gösterir")
 	fmt.Println("  help         Bu yardımı gösterir")
 	fmt.Println()
@@ -120,6 +130,7 @@ func printHelp() {
 	fmt.Println("  MANGILE_PROJECT_ID          Varsayılan: 1yge7tlr")
 	fmt.Println("  MANGILE_DATASET             Varsayılan: production")
 	fmt.Println("  MANGILE_UPLOADS             Varsayılan: kullanıcı config'i > ./uploads")
+	fmt.Println("  MANGILE_WEB_PORT            Varsayılan: 8787")
 	fmt.Println()
 	fmt.Println("Kullanıcı yapılandırması:")
 	fmt.Println("  os.UserConfigDir()/mangile/config.yaml (macOS: ~/Library/Application Support/mangile/)")

@@ -72,6 +72,8 @@ mangile run            # etkileşimli ana menü (varsayılan)
 mangile init           # uploads/ çalışma alanını hazırlar
 mangile publish        # bekleyen tüm taslakları yayınlar
 mangile rollback       # işlem günlüklerini listeler / geri alır
+mangile web            # yerel sürükle-bırak yükleme sunucusu (localhost:8787)
+mangile chapter        # bölüm listele / düzenle / sil (alt komut: list, edit, delete)
 mangile --dry-run run  # planı gösterir, hiçbir şey yazmaz
 mangile version        # sürüm bilgisi
 mangile help           # kullanım yardımı
@@ -89,6 +91,29 @@ Etkileşimli menü (`mangile run`) Türkçedir.
 | Seri durumunu göster | `run` → _Seri durumunu göster_ | Yerel serileri Sanity ile `myAnimeListId` üzerinden karşılaştırır |
 | Taslakları yayınla | `publish` (veya menüden) | `drafts.**` cinsindeki tüm dokümanları 20'lik gruplar hâlinde yayınlar |
 | Geri alma | `rollback` (veya menüden) | Bir günlüğü seçip işlemlerini geri alır |
+| Bölüm düzenle / sil | `chapter` (veya menüden) | Sanity'deki bölümleri listeler; başlık ve cilt düzenler, bölüm siler |
+| Web yükleyici | `web` (veya menüden) | Tarayıcıdan sürükle-bırak ile sayfa dosyası yükler |
+
+## Web Yükleyici
+
+`mangile web`, yalnızca yerel dosyaya yazan bir yükleme sunucusu başlatır (varsayılan `http://localhost:8787`):
+
+```bash
+mangile web
+```
+
+Tarayıcıda seri seçip bölüm klasörü adı yazarak sayfaları sürükleyip bırakın. Dosyalar `uploads/<Seri>/<Bölüm>/` altına yazılır; **Sanity'ye dokunulmaz**, token gerekmez. Yalnızca `jpg`, `jpeg`, `png`, `webp` kabul edilir; aynı isimli dosya varsa `-2`, `-3` ekiyle benzersizleşir. Portu değiştirmek için `MANGILE_WEB_PORT` ortam değişkenini kullanın. Yüklenen sayfalar daha sonra normal akışla (`mangile run` → bölüm yükle) Sanity'ye gönderilir.
+
+## Bölüm Düzenle / Sil
+
+```bash
+mangile chapter        # ne yapılacağını sorar
+mangile chapter list   # bölümleri listeler
+mangile chapter edit   # başlık ve cilt düzenler
+mangile chapter delete # bölümü siler
+```
+
+Düzenleme, bölümün başlık ve cilt alanını yamalar; işlem günlüğe yazılır ve `mangile rollback` ile geri alınabilir. Silme, bölümün taslak ve yayınlanmış kopyasını birlikte kaldırır, başka hiçbir yerde kullanılmayan görselleri temizler ve silinen kaydın özetini günlüğe işler. Novel metin içeriğinin düzenlenmesi bu sürümde yoktur.
 
 ### Örnek oturum
 
@@ -181,10 +206,11 @@ mangile rollback
 
 ## Ortam Değişkenleri
 
-| Değişken            | Varsayılan                    | Açıklama                                       |
-| ------------------- | ----------------------------- | ---------------------------------------------- |
-| `SANITY_TOKEN`      | —                             | Sanity API token (ağ işlemleri için zorunlu)   |
-| `MANGILE_UPLOADS`   | kullanıcı config'i → `./uploads` | İçerik kök dizini                          |
+| Değişken            | Varsayılan                       | Açıklama                                       |
+| ------------------- | -------------------------------- | ---------------------------------------------- |
+| `SANITY_TOKEN`      | —                                | Sanity API token (ağ işlemleri için zorunlu)   |
+| `MANGILE_UPLOADS`   | kullanıcı config'i → `./uploads` | İçerik kök dizini                              |
+| `MANGILE_WEB_PORT`  | `8787`                           | Web yükleyici portu                            |
 
 `MANGILE_PROJECT_ID`, `MANGILE_DATASET` ve `MANGILE_API_VERSION` de tanınır ve Mangile üretim değerlerine eşittir (`1yge7tlr`, `production`, `v2024-01-01`).
 
@@ -203,7 +229,7 @@ mangile rollback
 ## Yol Haritası
 
 - **Faz 1** ✓ — İskelet, pagesorter, manga/novel yükleme, taslak/yayın, geri alma
-- **Faz 2** — Sürükle-bırak yükleme için yerleşik web sunucusu, bölüm düzenle/sil, cbr/7z desteği
+- **Faz 2** (devam ediyor) — Yerleşik web sunucusu ✓, bölüm düzenle/sil + asset temizliği ✓, cbr/7z desteği (sonraya bırakıldı)
 - **Faz 3** — `create/update --fetch` (Jikan meta verisi), `doctor`, `import` (migrasyon + CSV)
 - **Faz 4** — Cilalama, uçtan uca testler, eski araçların kaldırılması
 

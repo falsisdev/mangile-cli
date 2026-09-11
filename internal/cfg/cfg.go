@@ -3,6 +3,8 @@ package cfg
 import (
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"mangile-cli/internal/constants"
 
@@ -15,6 +17,7 @@ type Config struct {
 	APIVersion string
 	Token      string
 	UploadsDir string
+	WebPort    int
 	DryRun     bool
 }
 
@@ -30,6 +33,7 @@ func Load() Config {
 		Token:      os.Getenv("SANITY_TOKEN"),
 	}
 	cfg.UploadsDir = resolveUploadsDir()
+	cfg.WebPort = resolveWebPort()
 	return cfg
 }
 
@@ -138,4 +142,16 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func resolveWebPort() int {
+	raw := strings.TrimSpace(os.Getenv("MANGILE_WEB_PORT"))
+	if raw == "" {
+		return constants.WebServerPort
+	}
+	port, err := strconv.Atoi(raw)
+	if err != nil || port < 1 || port > 65535 {
+		return constants.WebServerPort
+	}
+	return port
 }

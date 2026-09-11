@@ -10,6 +10,7 @@ func TestJournalRoundTrip(t *testing.T) {
 	j.CreatedDocs = append(j.CreatedDocs, "drafts.a", "drafts.b")
 	j.Assets = append(j.Assets, "image-a")
 	j.PatchedDocs = append(j.PatchedDocs, JournalPatch{ID: "scan-1", Rev: "r1", Before: map[string]any{"titles": []any{}}})
+	j.DeletedDocs = append(j.DeletedDocs, DeletedDoc{ID: "mangaChapter-3-0-12", Type: "mangaChapter", Title: "Başlangıç", Snapshot: map[string]any{"chapterNumber": 12}})
 	if err := j.Save(uploads); err != nil {
 		t.Fatal(err)
 	}
@@ -20,6 +21,9 @@ func TestJournalRoundTrip(t *testing.T) {
 	if got.ID != j.ID || len(got.CreatedDocs) != 2 || got.Assets[0] != "image-a" ||
 		len(got.PatchedDocs) != 1 || got.PatchedDocs[0].Rev != "r1" {
 		t.Errorf("journal roundtrip farklı: %+v", got)
+	}
+	if len(got.DeletedDocs) != 1 || got.DeletedDocs[0].Title != "Başlangıç" {
+		t.Errorf("silinen doc günlüğü korunmalı: %+v", got.DeletedDocs)
 	}
 }
 

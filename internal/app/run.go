@@ -21,6 +21,8 @@ func (a *App) Run(ctx context.Context) error {
 		"Manga bölümü yükle",
 		"Light novel bölümü yükle",
 		"Yeni seri dizini oluştur",
+		"Bölüm düzenle / sil",
+		"Web yükleyici (tarayıcı)",
 		"Taslakları yayınla",
 		"Değişiklikleri geri al (rollback)",
 		"Çıkış",
@@ -32,7 +34,7 @@ func (a *App) Run(ctx context.Context) error {
 			return err
 		}
 		switch pick {
-		case actions[6]:
+		case actions[8]:
 			tui.PrintInfo("Görüşürüz.")
 			return nil
 		case actions[0]:
@@ -52,10 +54,18 @@ func (a *App) Run(ctx context.Context) error {
 				tui.PrintError("%v", err)
 			}
 		case actions[4]:
-			if err := a.PublishAll(ctx); err != nil {
+			if err := a.ChapterManage(ctx, ""); err != nil {
 				tui.PrintError("%v", err)
 			}
 		case actions[5]:
+			if err := a.WebServe(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[6]:
+			if err := a.PublishAll(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[7]:
 			if err := a.Rollback(ctx); err != nil {
 				tui.PrintError("%v", err)
 			}
