@@ -1,0 +1,34 @@
+# Sistem
+.DS_Store
+Thumbs.db
+
+# Bağımlılıklar
+node_modules/
+.pnpm-store/
+
+# Derleme / önbellek
+dist/
+build/
+output/
+*.log
+coverage/
+
+# Ortam ve sırlar
+.env
+.env.*
+!.env.example
+config.json
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# sanity
+.sanity/
+
+# AI
+AGENTS.md
+opencode.json

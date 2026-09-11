@@ -1,0 +1,68 @@
+package app
+
+import (
+	"context"
+
+	"mangile-cli/internal/tui"
+)
+
+func (a *App) Run(ctx context.Context) error {
+	tui.PrintTitle("Mangile CLI")
+	tui.PrintDim("Proje: %s | Veri seti: %s | Dizin: %s", a.Cfg.ProjectID, a.Cfg.Dataset, a.uploadsDir())
+	if a.isDry() {
+		tui.PrintWarn("--dry-run aktif: hiçbir şey yazılmaz, yalnızca plan gösterilir.")
+	}
+	if !a.Cfg.HasToken() {
+		tui.PrintWarn("SANITY_TOKEN tanımlı değil — ağ işlemleri çalışmaz.")
+	}
+
+	actions := []string{
+		"Seri durumunu göster (reconcile)",
+		"Manga bölümü yükle",
+		"Light novel bölümü yükle",
+		"Yeni seri dizini oluştur",
+		"Taslakları yayınla",
+		"Değişiklikleri geri al (rollback)",
+		"Çıkış",
+	}
+	for {
+		var pick string
+		opts := optionsWithTitle(actions)
+		if err := tui.SelectOne("Yapılacak işlem", opts, &pick); err != nil {
+			return err
+		}
+		switch pick {
+		case actions[6]:
+			tui.PrintInfo("Görüşürüz.")
+			return nil
+		case actions[0]:
+			if err := a.SeriesList(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[1]:
+			if err := a.MangaUpload(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[2]:
+			if err := a.NovelUpload(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[3]:
+			if err := a.CreateSeriesDir(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[4]:
+			if err := a.PublishAll(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		case actions[5]:
+			if err := a.Rollback(ctx); err != nil {
+				tui.PrintError("%v", err)
+			}
+		}
+	}
+}
+
+func optionsWithTitle(items []string) []string {
+	return items
+}
