@@ -82,7 +82,7 @@ func (c *Client) Query(ctx context.Context, groq string, params map[string]any, 
 	if err != nil {
 		return err
 	}
-	data, status, err := c.do(ctx, http.MethodPost, "/data/query/"+c.dataset+"?perspective=raw&returnQueryMetadata=false", "application/json", body)
+	data, status, err := c.do(ctx, http.MethodPost, "/data/query/"+c.dataset+"?perspective=raw", "application/json", body)
 	if err != nil {
 		return err
 	}

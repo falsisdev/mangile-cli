@@ -142,8 +142,14 @@ func (a *App) pickSeries(ctx context.Context) (*uploads.Series, error) {
 			tag = " (dry-run)"
 		} else if s.IsConfigured() {
 			ss, err := a.fetchSeriesByID(ctx, s.Config.SanityID)
-			if err == nil && ss == nil && s.Config.MalID > 0 {
-				ss, _ = a.findSanitySeries(ctx, s.Config.MalID, kind)
+			if err != nil {
+				return nil, fmt.Errorf("sanityID sorgusu başarısız (%s): %w", s.Name(), err)
+			}
+			if ss == nil && s.Config.MalID > 0 {
+				ss, err = a.findSanitySeries(ctx, s.Config.MalID, kind)
+				if err != nil {
+					return nil, fmt.Errorf("MAL ID sorgusu başarısız (%s): %w", s.Name(), err)
+				}
 			}
 			if ss != nil {
 				tag = " ✓ " + ss.ID

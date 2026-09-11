@@ -41,11 +41,18 @@ func (a *App) SeriesList(ctx context.Context) error {
 		} else {
 			id := s.Config.SanityID
 			var ss *sanitySeries
+			var err error
 			if id != "" {
-				ss, _ = a.fetchSeriesByID(ctx, id)
+				ss, err = a.fetchSeriesByID(ctx, id)
+				if err != nil {
+					return err
+				}
 			}
-			if ss == nil {
-				ss, _ = a.findSanitySeries(ctx, s.Config.MalID, s.Config.Type)
+			if ss == nil && s.Config.MalID > 0 {
+				ss, err = a.findSanitySeries(ctx, s.Config.MalID, s.Config.Type)
+				if err != nil {
+					return err
+				}
 			}
 			if ss != nil {
 				matched = "bulundu: " + ss.ID + " (" + ss.UploadStatus + ")"
