@@ -31,21 +31,29 @@ func (a *App) CreateSeries(ctx context.Context, fetch bool) error {
 	}
 	kind := askType()
 	var title, description, imageURL, jikanKind string
+	manual := !fetch
 	if fetch {
 		tui.PrintInfo("Jikan'dan alınıyor: MAL %d…", malID)
 		meta, err := jikan.FetchManga(malID)
 		if err != nil {
-			return err
+			tui.PrintWarn("Jikan erişilemiyor: %v", err)
+			if tui.ConfirmOrAbort("Elle devam edilsin mi?") {
+				manual = true
+			} else {
+				return nil
+			}
+		} else {
+			title, description, imageURL, jikanKind = meta.Title, meta.Synopsis, meta.ImageURL, meta.Kind
+			tui.PrintInfo("Bulundu: %s (%s)", title, jikanKind)
+			if description != "" {
+				tui.PrintDim("  %s", firstLinePreview(description))
+			}
+			if !tui.ConfirmOrAbort("Bu bilgiyle devam edilsin mi?") {
+				return nil
+			}
 		}
-		title, description, imageURL, jikanKind = meta.Title, meta.Synopsis, meta.ImageURL, meta.Kind
-		tui.PrintInfo("Bulundu: %s (%s)", title, jikanKind)
-		if description != "" {
-			tui.PrintDim("  %s", firstLinePreview(description))
-		}
-		if !tui.ConfirmOrAbort("Bu bilgiyle devam edilsin mi?") {
-			return nil
-		}
-	} else {
+	}
+	if manual {
 		var t string
 		if err := tui.PromptText("Seri başlığı", &t); err != nil {
 			return err
@@ -134,6 +142,17 @@ func (a *App) UpdateSeries(ctx context.Context, fetch bool) error {
 	if err != nil {
 		return err
 	}
+	if series.Config.MalID <= 0 {
+		malID := askInt("MyAnimeList ID (örn. Chainsaw Man: 116778)")
+		if malID <= 0 {
+			return fmt.Errorf("geçerli bir MyAnimeList ID girin")
+		}
+		series.Config.MalID = malID
+		if err := uploads.SaveSeriesConfig(series.Dir, series.Config); err != nil {
+			return err
+		}
+		tui.PrintInfo("MyAnimeList ID kaydedildi: %d", malID)
+	}
 	kind := "manga"
 	if series.IsNovel() {
 		kind = "lightNovel"
@@ -154,28 +173,32 @@ func (a *App) UpdateSeries(ctx context.Context, fetch bool) error {
 		tui.PrintInfo("Jikan'dan alınıyor: MAL %d…", ss.MalID)
 		meta, err := jikan.FetchManga(ss.MalID)
 		if err != nil {
-			return err
-		}
-		if ss.Title == "" && meta.Title != "" {
-			patch["title"] = meta.Title
-		}
-		if ss.Description == "" && meta.Synopsis != "" {
-			patch["description"] = meta.Synopsis
-		}
-		if meta.ImageURL != "" {
-			hasCover, err := a.seriesHasCover(ctx, sanityID)
-			if err != nil {
-				return err
+			tui.PrintWarn("Jikan erişilemiyor: %v", err)
+			if !tui.ConfirmOrAbort("Jikan olmadan devam edilsin mi? (durum ve etiketler düzenlenebilir)") {
+				return nil
 			}
-			if !hasCover {
-				if a.isDry() {
-					tui.PrintInfo("[dry-run] Kapak indirilecek: %s", meta.ImageURL)
-				} else {
-					assetID, err := a.uploadCoverImage(ctx, meta.ImageURL, ss.Title)
-					if err != nil {
-						tui.PrintWarn("Kapak yüklenemedi: %v", err)
+		} else {
+			if ss.Title == "" && meta.Title != "" {
+				patch["title"] = meta.Title
+			}
+			if ss.Description == "" && meta.Synopsis != "" {
+				patch["description"] = meta.Synopsis
+			}
+			if meta.ImageURL != "" {
+				hasCover, err := a.seriesHasCover(ctx, sanityID)
+				if err != nil {
+					return err
+				}
+				if !hasCover {
+					if a.isDry() {
+						tui.PrintInfo("[dry-run] Kapak indirilecek: %s", meta.ImageURL)
 					} else {
-						patch["coverImage"] = map[string]any{"_type": "image", "asset": ref(assetID)}
+						assetID, err := a.uploadCoverImage(ctx, meta.ImageURL, ss.Title)
+						if err != nil {
+							tui.PrintWarn("Kapak yüklenemedi: %v", err)
+						} else {
+							patch["coverImage"] = map[string]any{"_type": "image", "asset": ref(assetID)}
+						}
 					}
 				}
 			}
