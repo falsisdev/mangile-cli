@@ -62,8 +62,8 @@ func (a *App) NovelUpload(ctx context.Context) error {
 	}
 
 	var labels []string
-	for _, p := range chapterPaths {
-		labels = append(labels, filepath.Base(p))
+	for i, p := range chapterPaths {
+		labels = append(labels, fmt.Sprintf("%2d. %s", i+1, filepath.Base(p)))
 	}
 	var selected []string
 	if err := tui.SelectMany("Yüklenecek bölümler", labels, &selected); err != nil {
@@ -99,8 +99,15 @@ func (a *App) NovelUpload(ctx context.Context) error {
 		}
 		tui.PrintInfo("Bölüm %s (%d satır)", ch.Display, strings.Count(ch.Text, "\n"))
 		tui.PrintDim("  %d illüstrasyon", len(ch.Images))
+		if preview := firstLinePreview(ch.Text); preview != "" {
+			tui.PrintDim("  İlk satır: %s", preview)
+		}
 		if a.isDry() {
-			tui.PrintInfo("  [dry-run] novelChapter taslağı oluşturulacak (Bölüm %s)", formatNum(ch.Number))
+			draftID := "(numara tespit edilemedi)"
+			if ch.NumberP {
+				draftID = "drafts." + chapterID("novelChapter", series.Config.MalID, seriesVolume(ch.Volume), formatNum(ch.Number))
+			}
+			tui.PrintInfo("  [dry-run] novelChapter taslağı oluşturulacak → %s", draftID)
 			continue
 		}
 		draftID, ok, err := a.uploadNovelChapter(ctx, journal, series, sanityID, ch)
@@ -225,6 +232,20 @@ func readLegacyText(dir string) string {
 	return string(data)
 }
 
+func firstLinePreview(text string) string {
+	if text == "" {
+		return ""
+	}
+	s := strings.TrimSpace(text)
+	if idx := strings.IndexAny(s, "\r\n"); idx >= 0 {
+		s = strings.TrimSpace(s[:idx])
+	}
+	if len(s) > 80 {
+		s = s[:80] + "…"
+	}
+	return s
+}
+
 func pickNovelMainFile(dir string) string {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -290,6 +311,9 @@ func readImageURLs(dir string) []string {
 }
 
 func (a *App) uploadNovelChapter(ctx context.Context, journal *uploads.Journal, series *uploads.Series, sanityID string, ch *NovelChapter) (string, bool, error) {
+	if len(ch.Text) > constants.DocumentSizeLimit {
+		tui.PrintWarn("Bölüm %s içerik %d bayt — Sanity doküman limiti %d aşıldı. Yine de yükleniyor (parçalama Faz 2'de eklenecek).", ch.Display, len(ch.Text), constants.DocumentSizeLimit)
+	}
 	vol := seriesVolume(ch.Volume)
 	content := sanity.PortableTextFromText(ch.Text)
 	for i, u := range ch.Images {

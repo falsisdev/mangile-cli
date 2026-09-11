@@ -44,6 +44,15 @@ func (a *App) Rollback(ctx context.Context) error {
 		return nil
 	}
 
+	if a.isDry() {
+		if !a.Cfg.HasToken() {
+			tui.PrintWarn("SANITY_TOKEN olmadan geri alma planı çıkarılamaz. Canlı modda çalıştırın: mangile rollback")
+			return nil
+		}
+		tui.PrintInfo("[dry-run] Plan: %d bölüm doc silinecek, %d patch geri alınacak, %d asset temizlenecek", len(journal.CreatedDocs), len(journal.PatchedDocs), len(journal.Assets))
+		return nil
+	}
+
 	var allIDs []string
 	for _, id := range journal.CreatedDocs {
 		allIDs = append(allIDs, id)

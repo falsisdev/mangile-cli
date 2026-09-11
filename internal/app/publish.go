@@ -12,6 +12,10 @@ func (a *App) PublishAll(ctx context.Context) error {
 		return err
 	}
 	tui.PrintTitle("Taslakları Yayınla")
+	if a.isDry() && !a.Cfg.HasToken() {
+		tui.PrintWarn("SANITY_TOKEN olmadan taslak sayısı belirlenemez. Canlı modda çalıştırın: mangile publish")
+		return nil
+	}
 	var ids []string
 	groq := `*[_id match "drafts.**"]._id`
 	if err := a.Client.Query(ctx, groq, nil, &ids); err != nil {

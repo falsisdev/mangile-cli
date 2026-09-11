@@ -66,8 +66,8 @@ func (a *App) MangaUpload(ctx context.Context) error {
 	}
 
 	var labels []string
-	for _, c := range filtered {
-		labels = append(labels, fmt.Sprintf("%s (%d sayfa)", c.Display, len(c.Pages)))
+	for i, c := range filtered {
+		labels = append(labels, fmt.Sprintf("%2d. %s (%d sayfa)", i+1, c.Display, len(c.Pages)))
 	}
 	var selected []string
 	if err := tui.SelectMany("Yüklenecek bölümler", labels, &selected); err != nil {
@@ -90,7 +90,10 @@ func (a *App) MangaUpload(ctx context.Context) error {
 
 	tui.PrintInfo("Yüklenecek %d bölüm:", len(chosen))
 	for _, c := range chosen {
-		tui.PrintDim("  • %s → %d sayfa", c.Display, len(c.Pages))
+		tui.PrintInfo("  • %s → %d sayfa", c.Display, len(c.Pages))
+		for _, name := range previewPageNames(c.Pages) {
+			tui.PrintDim("      %s", name)
+		}
 	}
 
 	if !a.isDry() && !tui.ConfirmOrAbort("Sıra doğru mu? Yükleme başlasın mı?") {
@@ -111,7 +114,12 @@ func (a *App) MangaUpload(ctx context.Context) error {
 	for _, c := range chosen {
 		tui.PrintInfo("Bölüm %s işleniyor…", c.Display)
 		if a.isDry() {
-			tui.PrintInfo("  [dry-run] %d sayfa yüklenecek + mangaChapter taslağı oluşturulacak", len(c.Pages))
+			draftID := "(numara tespit edilemedi)"
+			if c.NumberP {
+				vol := seriesVolume(c.Volume)
+				draftID = "drafts." + chapterID("mangaChapter", series.Config.MalID, vol, formatNum(c.Number))
+			}
+			tui.PrintInfo("  [dry-run] %d sayfa yüklenecek → %s", len(c.Pages), draftID)
 			continue
 		}
 		draftID, ok, err := a.uploadMangaChapter(ctx, journal, series, sanityID, c)
@@ -174,7 +182,7 @@ func (a *App) scanMangaFolder(path string) *MangaChapter {
 	ch.Number, ch.NumberP = parseChapterNumber(base)
 	ch.Volume, _ = parseVolume(base)
 	ch.Title = cleanChapterTitle(base)
-	if ci, ok := readComicInfo(path); ok {
+	if ci, ok := findComicInfo(path); ok {
 		if n, err := parseComicNumber(ci.Number); err == nil && n > 0 {
 			ch.Number, ch.NumberP = n, true
 		}
@@ -205,6 +213,17 @@ func (a *App) scanMangaArchive(path string) *MangaChapter {
 		return nil
 	}
 	ch.TempDir = tmp
+	if ci, ok := findComicInfo(tmp); ok {
+		if n, err := parseComicNumber(ci.Number); err == nil && n > 0 {
+			ch.Number, ch.NumberP = n, true
+		}
+		if v, err := parseComicVolume(ci.Volume); err == nil && v > 0 {
+			ch.Volume = v
+		}
+		if ci.Title != "" {
+			ch.Title = ci.Title
+		}
+	}
 	ch.Pages = collectImagePages(tmp)
 	ch.Display = chapterDisplay(ch)
 	return ch
@@ -235,12 +254,45 @@ func collectImagePages(dir string) []PageFile {
 	return pages
 }
 
-func readComicInfo(dir string) (formats.ComicInfoData, bool) {
-	data, err := os.ReadFile(filepath.Join(dir, "ComicInfo.xml"))
+func findComicInfo(dir string) (formats.ComicInfoData, bool) {
+	var found string
+	filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() || found != "" {
+			return nil
+		}
+		if strings.EqualFold(d.Name(), "ComicInfo.xml") {
+			found = p
+		}
+		return nil
+	})
+	if found == "" {
+		return formats.ComicInfoData{}, false
+	}
+	data, err := os.ReadFile(found)
 	if err != nil {
 		return formats.ComicInfoData{}, false
 	}
 	return formats.ParseComicInfo(data)
+}
+
+func previewPageNames(pages []PageFile) []string {
+	if len(pages) <= 2*constants.MaxPreviewPages {
+		var names []string
+		for _, p := range pages {
+			names = append(names, p.Name)
+		}
+		return names
+	}
+	names := make([]string, 0, 2*constants.MaxPreviewPages+1)
+	for i := 0; i < constants.MaxPreviewPages; i++ {
+		names = append(names, pages[i].Name)
+	}
+	names = append(names, fmt.Sprintf("... %d sayfa atlandı ...", len(pages)-2*constants.MaxPreviewPages))
+	start := len(pages) - constants.MaxPreviewPages
+	for i := start; i < len(pages); i++ {
+		names = append(names, pages[i].Name)
+	}
+	return names
 }
 
 func parseComicNumber(s string) (float64, error) {

@@ -13,8 +13,12 @@ import (
 )
 
 func IsArchive(name string) bool {
-	ext := strings.ToLower(filepath.Ext(name))
-	return ext == ".cbz" || ext == ".zip" || ext == ".tar.gz" || ext == ".tgz" || ext == ".tar"
+	lower := strings.ToLower(name)
+	if strings.HasSuffix(lower, ".tar.gz") || strings.HasSuffix(lower, ".tgz") {
+		return true
+	}
+	ext := filepath.Ext(lower)
+	return ext == ".cbz" || ext == ".zip" || ext == ".tar"
 }
 
 func ArchiveExt(name string) string {
@@ -42,11 +46,17 @@ func ExpandArchive(path, dst string) error {
 	case size >= 3 && bytes.Equal(head[:3], []byte{0x1f, 0x8b, 0x08}):
 		ext := ArchiveExt(path)
 		if ext == ".tar.gz" || ext == ".tgz" {
+			if _, err := data.Seek(0, io.SeekStart); err != nil {
+				return err
+			}
 			return expandTarGz(data, dst)
 		}
 		return fmt.Errorf("desteklenmeyen gzip arşivi: %s", path)
 	case size >= 2 && bytes.Equal(head[:2], []byte{0x1f, 0x9d}):
 		return fmt.Errorf("compress gzip desteklenmiyor: %s", path)
+	}
+	if ArchiveExt(path) == ".tar" {
+		return expandPlainTar(path, dst)
 	}
 	return fmt.Errorf("tanınmayan arşiv formatı: %s", path)
 }
@@ -78,7 +88,19 @@ func expandTarGz(r io.Reader, dst string) error {
 		return err
 	}
 	defer gz.Close()
-	tr := tar.NewReader(gz)
+	return expandTar(tar.NewReader(gz), dst)
+}
+
+func expandPlainTar(path, dst string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return expandTar(tar.NewReader(f), dst)
+}
+
+func expandTar(tr *tar.Reader, dst string) error {
 	for {
 		hdr, err := tr.Next()
 		if err == io.EOF {

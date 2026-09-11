@@ -9,6 +9,16 @@ import (
 )
 
 func (a *App) resolveSeriesID(ctx context.Context, series *uploads.Series, expectedType string) (string, error) {
+	if a.isDry() {
+		if series.Config.SanityID != "" {
+			return series.Config.SanityID, nil
+		}
+		if series.Config.MalID <= 0 {
+			return "", fmt.Errorf("config.yaml'de myAnimeListId tanımlı değil: %s/config.yaml", series.Dir)
+		}
+		tui.PrintWarn("Dry-run: Sanity eşleşmesi doğrulanmadı; ID'ler myAnimeListId üzerinden öngörülür.")
+		return "", nil
+	}
 	if series.Config.SanityID != "" {
 		ss, err := a.fetchSeriesByID(ctx, series.Config.SanityID)
 		if err != nil {

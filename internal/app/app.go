@@ -18,7 +18,7 @@ var (
 	bolumReWide = regexp.MustCompile(`(?i)b[oö]l[uü]m\s*(\d+(?:[.,]\d+)?)`)
 	bolumRe     = regexp.MustCompile(`(?i)chapter\s*(\d+(?:[.,]\d+)?)`)
 	ciltRe      = regexp.MustCompile(`(?i)cilt\s*(\d+)`)
-	firstNumRe  = regexp.MustCompile(`\d+(?:[.,]\d+)?`)
+	firstNumRe  = regexp.MustCompile(`(\d+(?:[.,]\d+)?)`)
 )
 
 type App struct {
@@ -37,6 +37,9 @@ func New(c cfg.Config) *App {
 
 func (a *App) requireToken() error {
 	if a.Cfg.HasToken() {
+		return nil
+	}
+	if a.isDry() {
 		return nil
 	}
 	return errors.New("SANITY_TOKEN ortam değişkeni tanımlı değil")
@@ -67,7 +70,7 @@ func (a *App) findSanitySeries(ctx context.Context, malID int, seriesType string
 		return nil, nil
 	}
 	var res []sanitySeries
-	groq := `*[_type == $type && myAnimeListId == $malId][0..0]{
+	groq := `*[_type == $type && myAnimeListId == $malId]{
       _id, _rev, _type, title, myAnimeListId, uploadStatus,
       "slug": slug.current, description, tags
     }`
@@ -76,6 +79,9 @@ func (a *App) findSanitySeries(ctx context.Context, malID int, seriesType string
 	}
 	if len(res) == 0 {
 		return nil, nil
+	}
+	if len(res) > 1 {
+		tui.PrintWarn("%d seri myAnimeListId (%d, %s) ile eşleşiyor; ilki kullanılıyor. Aynı MAL ID'li seriler bölüm listesini karıştırabilir.", len(res), malID, seriesType)
 	}
 	return &res[0], nil
 }
@@ -132,7 +138,9 @@ func (a *App) pickSeries(ctx context.Context) (*uploads.Series, error) {
 			kind = "lightNovel"
 		}
 		tag := ""
-		if s.IsConfigured() {
+		if a.isDry() {
+			tag = " (dry-run)"
+		} else if s.IsConfigured() {
 			ss, err := a.fetchSeriesByID(ctx, s.Config.SanityID)
 			if err == nil && ss == nil && s.Config.MalID > 0 {
 				ss, _ = a.findSanitySeries(ctx, s.Config.MalID, kind)
