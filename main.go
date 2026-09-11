@@ -98,7 +98,7 @@ func errCode(err error) int {
 }
 
 func printHelp() {
-	fmt.Println("Mangile CLI — the_mangile içerik yükleyici")
+	fmt.Println("Mangile CLI — Mangile içerik yükleyici")
 	fmt.Println()
 	fmt.Printf("Sürüm: %s\n", version)
 	fmt.Println()
