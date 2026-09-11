@@ -58,6 +58,14 @@ func (a *App) SeriesList(ctx context.Context) error {
 				matched = "bulundu: " + ss.ID + " (" + ss.UploadStatus + ")"
 				if s.Config.SanityID != ss.ID {
 					s.Config.SanityID = ss.ID
+					// Eğer config'de başlık boşsa Sanity'den doldur
+					if s.Config.Title == "" {
+						s.Config.Title = ss.Title
+					}
+					// Eğer config MAL ID boş veya farklıysa güncelle
+					if s.Config.MalID != ss.MalID {
+						s.Config.MalID = ss.MalID
+					}
 					_ = uploads.SaveSeriesConfig(s.Dir, s.Config)
 					matched += " → config.yaml'ye yazıldı"
 				}
