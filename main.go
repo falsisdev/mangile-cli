@@ -107,6 +107,12 @@ func run() int {
 		return errCode(a.Doctor(ctx))
 	case "sync":
 		return errCode(a.Sync(ctx))
+	case "batch-manga":
+		if len(positional) != 2 {
+			fmt.Fprintln(os.Stderr, "Kullanım: mangile batch-manga <seri>")
+			return 1
+		}
+		return errCode(a.BatchMangaUpload(ctx, positional[1]))
 	case "import":
 		sub := ""
 		if len(positional) > 1 {
@@ -162,6 +168,7 @@ func printHelp() {
 	fmt.Println("  update       Seri güncelle [--fetch ile eksikleri doldur]")
 	fmt.Println("  doctor       Tutarlılık taraması")
 	fmt.Println("  sync         Sanity'deki eksik bölümleri yerele indir")
+	fmt.Println("  batch-manga  Onaylı manga serisini toplu olarak taslağa yükler")
 	fmt.Println("  import       İçe aktar (alt komut: csv <dosya> [seri], migrate)")
 	fmt.Println("  version      Sürüm bilgisini gösterir")
 	fmt.Println("  help         Bu yardımı gösterir")

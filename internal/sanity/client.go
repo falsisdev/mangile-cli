@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -136,17 +136,7 @@ func (c *Client) Mutate(ctx context.Context, mutations []map[string]any, returnI
 }
 
 func (c *Client) UploadAsset(ctx context.Context, content []byte, filename, contentType string) (string, error) {
-	var buf bytes.Buffer
-	mw := multipart.NewWriter(&buf)
-	fw, err := mw.CreateFormFile("file", filename)
-	if err != nil {
-		return "", err
-	}
-	if _, err := fw.Write(content); err != nil {
-		return "", err
-	}
-	mw.Close()
-	data, status, err := c.do(ctx, http.MethodPost, "/assets/images/"+c.dataset, mw.FormDataContentType(), buf.Bytes())
+	data, status, err := c.do(ctx, http.MethodPost, "/assets/images/"+c.dataset+"?filename="+url.QueryEscape(filename), contentType, content)
 	if err != nil {
 		return "", err
 	}

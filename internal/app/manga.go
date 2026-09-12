@@ -179,12 +179,16 @@ func (a *App) scanMangaChapters(seriesDir string) ([]*MangaChapter, error) {
 func (a *App) scanMangaFolder(path string) *MangaChapter {
 	base := filepath.Base(path)
 	ch := &MangaChapter{Kind: "folder", Path: path}
-	ch.Number, ch.NumberP = parseChapterNumber(base)
-	ch.Volume, _ = parseVolume(base)
+	folderNum, folderNumP := parseChapterNumber(base)
+	folderVol, _ := parseVolume(base)
+	ch.Number, ch.NumberP = folderNum, folderNumP
+	ch.Volume = folderVol
 	ch.Title = cleanChapterTitle(base)
 	if ci, ok := findComicInfo(path); ok {
 		if n, err := parseComicNumber(ci.Number); err == nil && n > 0 {
-			ch.Number, ch.NumberP = n, true
+			if n == float64(int(n)) {
+				ch.Number, ch.NumberP = n, true
+			}
 		}
 		if v, err := parseComicVolume(ci.Volume); err == nil && v > 0 {
 			ch.Volume = v
